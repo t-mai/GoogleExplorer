@@ -220,18 +220,19 @@ class GoogleSearch(object):
             return empty_info
         txt = ''.join(p.findAll(text=True))
         txt = txt.replace(',', '')
-        matches = re.search(r'%s (\d+) - (\d+) %s (?:%s )?(\d+)' % self._re_search_strings, txt, re.U)
+        matches = re.search(r'%s (\d+) %s\s+\((\d+\.\d+) %s\)' % self._re_search_strings, txt, re.U)
         if not matches:
             return empty_info
         return {'from': int(matches.group(1)), 'to': int(matches.group(2)), 'total': int(matches.group(3))}
 
     def _extract_results(self, soup):
-        results = soup.findAll('li', {'class': 'g'})
+        results = soup.findAll('div', {'class': 'g'})
         ret_res = []
         for result in results:
-            eres = self._extract_result(result)
-            if eres:
-                ret_res.append(eres)
+            if(result.find('span')):
+                eres = self._extract_result(result)
+                if eres:
+                    ret_res.append(eres)
         return ret_res
 
     def _extract_result(self, result):
@@ -256,12 +257,12 @@ class GoogleSearch(object):
         return title, url
 
     def _extract_description(self, result):
-        desc_div = result.find('div', {'class': re.compile(r'\bs\b')})
-        if not desc_div:
+        desc_span = result.find('span', {'class': 'st'})
+        if not desc_span:
             self._maybe_raise(ParseError, "Description tag in Google search result was not found", result)
             return None
 
-        desc_strs = []
+        """desc_strs = []
         def looper(tag):
             if not tag: return
             for t in tag:
@@ -276,9 +277,9 @@ class GoogleSearch(object):
                     desc_strs.append(t)
 
         looper(desc_div)
-        looper(desc_div.find('wbr')) # BeautifulSoup does not self-close <wbr>
+        looper(desc_div.find('wbr')) # BeautifulSoup does not self-close <wbr>"""
 
-        desc = ''.join(s for s in desc_strs if s)
+        desc = ''.join(desc_span.findAll(text=True))
         return self._html_unescape(desc)
 
     def _html_unescape(self, str):
